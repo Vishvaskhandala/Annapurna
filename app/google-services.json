@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "534744318739",
+    "firebase_url": "https://chatboxdemo-f5acf-default-rtdb.firebaseio.com",
+    "project_id": "chatboxdemo-f5acf",
+    "storage_bucket": "chatboxdemo-f5acf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:534744318739:android:933f5f6c01677ec25750e6",
+        "android_client_info": {
+          "package_name": "com.example.Annapurna"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmtiNKEBOIf5ro4CN0Tbb2m6xaw-6cAJ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
