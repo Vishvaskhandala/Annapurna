@@ -25,6 +25,8 @@ serialization = "1.6.3"
 firebaseCrashlyticsBuildtools = "3.0.6"
 foundation = "1.10.2"
 firebaseMessagingKtx = "25.0.1"
+maps-compose = "8.1.0"
+play-services-location = "21.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -57,14 +59,19 @@ firebase-inappmessaging-display-ktx = { group = "com.google.firebase", name = "f
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
-supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt", version.ref = "supabase" }
+supabase-bom = { module = "io.github.jan-tennert.supabase:bom", version.ref = "supabase"}
+supabase-auth = { module = "io.github.jan-tennert.supabase:gotrue-kt", version.ref = "supabase" }
 supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt", version.ref = "supabase" }
 supabase-storage = { module = "io.github.jan-tennert.supabase:storage-kt", version.ref = "supabase" }
+supabase-realtime = { module = "io.github.jan-tennert.supabase:realtime-kt", version.ref = "supabase" }
 ktor-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
 serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx", version.ref = "firebaseMessagingKtx" }
+maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "maps-compose" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "play-services-location" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

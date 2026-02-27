@@ -35,10 +35,13 @@ data class FoodPost(
 
     val longitude: Double = 0.0,
 
-    val status: String = "available", // available, claimed, completed
+    val status: String = "available", // available, claimed_by_ngo, delivered
 
     @SerialName("claimed_by")
     val claimedBy: String? = null,
+
+    @SerialName("request_id")
+    val requestId: String? = null, // ✅ NEW: Link to the request it fulfilled
 
     @SerialName("created_at")
     val createdAt: Long = System.currentTimeMillis()

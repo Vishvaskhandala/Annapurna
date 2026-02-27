@@ -1,3 +1,9 @@
+import java.io.FileInputStream
+// Add this to read local.properties
+import java.util.Properties
+import org.gradle.api.GradleException
+
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +11,8 @@ plugins {
     kotlin("plugin.serialization")
     id("com.google.gms.google-services")
 }
+
+
 
 android {
     namespace = "com.example.annapurna"
@@ -18,18 +26,24 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField(
-            "String",
-            "SUPABASE_URL",
-            "\"${project.findProperty("SUPABASE_URL")}\""
-        )
 
-        buildConfigField(
-            "String",
-            "SUPABASE_KEY",
-            "\"${project.findProperty("SUPABASE_KEY")}\""
-        )
+        // Read from local.properties file
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localProperties.load(FileInputStream(localPropertiesFile))
+        }
 
+        val supabaseUrl = localProperties.getProperty("SUPABASE_URL") ?: ""
+        val supabaseKey = localProperties.getProperty("SUPABASE_KEY") ?: ""
+
+        // Add null check to avoid empty values
+        if (supabaseUrl.isEmpty() || supabaseKey.isEmpty()) {
+            throw GradleException("SUPABASE_URL and SUPABASE_KEY must be defined in local.properties")
+        }
+
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"$supabaseKey\"")
     }
 
     buildTypes {
@@ -60,45 +74,35 @@ android {
 }
 
 dependencies {
-
-    // ================= COMPOSE =================
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
+//    implementation(libs.androidx.compose.material3)
+    implementation("androidx.compose.material3:material3:1.4.0")
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.material.icons.extended)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    // ================= ANDROID CORE =================
-    implementation(libs.androidx.core.ktx)
+    implementation("androidx.core:core-ktx:1.13.1")
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-
-    // ================= NAVIGATION =================
     implementation(libs.androidx.navigation.compose)
 
-    // ================= COIL =================
     implementation("io.coil-kt:coil-compose:2.7.0")
-
-    // ================= ACCOMPANIST =================
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
-
-    // ================= COROUTINES =================
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
-    // ================= FIREBASE =================
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
-    implementation("com.google.firebase:firebase-messaging")   // ✅ NOT ktx - included inside
+    implementation("com.google.firebase:firebase-messaging")
     implementation("androidx.compose.material:material:1.7.6")
 
     // ================= SUPABASE =================
@@ -108,15 +112,20 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:storage-kt")
     implementation("io.github.jan-tennert.supabase:realtime-kt")  // ✅ for chat realtime
 
-    // ================= KTOR =================
     implementation(libs.ktor.android)
-
-    // ================= SERIALIZATION =================
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
 
-    // ================= TESTING =================
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    implementation("com.google.maps.android:maps-compose:4.4.1")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
+//    lottie
+    implementation("com.airbnb.android:lottie-compose:6.3.0")
 }

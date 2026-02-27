@@ -23,13 +23,18 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.FoodWastageReduction"
+        android:theme="@style/Theme.Annapurna"
         tools:targetApi="33">
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAI4CNVD9pS2Ed5E_c_mnM4R8wr6V8LQZw" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.FoodWastageReduction">
+            android:theme="@style/Theme.Annapurna">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

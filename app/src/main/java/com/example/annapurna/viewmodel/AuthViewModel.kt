@@ -21,6 +21,9 @@ class AuthViewModel : ViewModel() {
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser
 
+    private val _userRole = MutableStateFlow("")
+    val userRole: StateFlow<String> = _userRole
+
     init {
         checkCurrentUser()
     }
@@ -34,6 +37,7 @@ class AuthViewModel : ViewModel() {
                 if (userId == null) {
                     _authState.value = AuthState.Unauthenticated
                     _currentUser.value = null
+                    _userRole.value = ""
                     return@launch
                 }
 
@@ -41,6 +45,7 @@ class AuthViewModel : ViewModel() {
 
                 result.onSuccess { user ->
                     _currentUser.value = user
+                    _userRole.value = user.userType
                     _authState.value = AuthState.Authenticated
                     saveFcmToken()
                     Log.d("AuthViewModel", "checkCurrentUser: success, user: $user")
@@ -48,12 +53,21 @@ class AuthViewModel : ViewModel() {
                     Log.e("AuthViewModel", "checkCurrentUser: failed to get user data", exception)
                     repository.logout()
                     _currentUser.value = null
+                    _userRole.value = ""
                     _authState.value = AuthState.Unauthenticated
                 }
 
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "checkCurrentUser: exception", e)
                 _authState.value = AuthState.Unauthenticated
+            }
+        }
+    }
+
+    fun getUserRole() {
+        viewModelScope.launch {
+            _currentUser.value?.let {
+                _userRole.value = it.userType
             }
         }
     }
@@ -130,17 +144,13 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             Log.d("AuthViewModel", "logout")
 
-            // ✅ FIX ISSUE 2: Clear UI state FIRST, then call server signOut
-            // Old order: repository.logout() → then set state
-            // Problem: signOut() could trigger session callbacks that call checkCurrentUser()
-            // BEFORE state was Unauthenticated → race condition → auto re-login
             _currentUser.value = null
-            _authState.value = AuthState.Unauthenticated  // ← MOVED BEFORE repository.logout()
+            _userRole.value = ""
+            _authState.value = AuthState.Unauthenticated
 
             try {
                 repository.logout()
             } catch (e: Exception) {
-                // UI already shows Login screen — safe to ignore server error
                 Log.e("AuthViewModel", "logout: server signOut failed (ignored)", e)
             }
         }

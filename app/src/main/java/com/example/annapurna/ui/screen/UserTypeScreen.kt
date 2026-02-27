@@ -67,7 +67,6 @@ fun UserTypeScreen(navController: NavController, authViewModel: AuthViewModel = 
                         Box(modifier = Modifier.width(48.dp).height(4.dp).clip(CircleShape).background(Saffron.copy(alpha = 0.3f)))
                         Spacer(modifier = Modifier.height(28.dp))
 
-                        // Donor Card
                         RoleCard(emoji = "🍱", badge = "ANNA DAATA", title = "Food Donor",
                             desc = "Share your surplus food\nwith those who need it most",
                             isSelected = selectedType == "donor", selectedColor = Saffron,
@@ -75,7 +74,6 @@ fun UserTypeScreen(navController: NavController, authViewModel: AuthViewModel = 
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Recipient Card
                         RoleCard(emoji = "🤲", badge = "SEVA GRAHI", title = "Recipient / NGO",
                             desc = "Receive food for yourself\nor your community / NGO",
                             isSelected = selectedType == "recipient", selectedColor = EarthGreen,
@@ -92,11 +90,11 @@ fun UserTypeScreen(navController: NavController, authViewModel: AuthViewModel = 
 
                         Spacer(modifier = Modifier.weight(1f))
 
-                        // Quote
                         Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
                             .background(Saffron.copy(alpha = 0.07f)).padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically) {
-                            Text("🪔", fontSize = 22.sp)
+                            // ✅ REPLACED: "🪔" with "🌿"
+                            Text("🌿", fontSize = 22.sp)
                             Spacer(modifier = Modifier.width(10.dp))
                             Text("\"The highest act of charity is to give food\" — Indian wisdom",
                                 fontSize = 12.sp, color = DarkBrown.copy(alpha = 0.6f), lineHeight = 17.sp, fontWeight = FontWeight.Medium)
@@ -113,7 +111,8 @@ fun UserTypeScreen(navController: NavController, authViewModel: AuthViewModel = 
                                         val result = authViewModel.updateUserType(currentUser!!.userId, selectedType!!)
                                         result.onSuccess {
                                             authViewModel.refreshUser()
-                                            navController.navigate(Screen.Home.route) { popUpTo(0) { inclusive = true } }
+                                            // ✅ CORRECTED: Navigate to Screen.Main.route
+                                            navController.navigate(Screen.Main.route) { popUpTo(0) { inclusive = true } }
                                         }.onFailure { errorMessage = it.message ?: "Failed to update" }
                                         isLoading = false
                                     }

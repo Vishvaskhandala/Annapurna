@@ -1,8 +1,10 @@
 package com.example.annapurna.ui.screen
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.TimePickerDialog
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,10 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,6 +37,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.annapurna.viewmodel.FoodViewModel
 import com.example.annapurna.viewmodel.PostState
+import com.google.android.gms.location.LocationServices
 import java.io.File
 import java.util.*
 
@@ -55,12 +55,18 @@ fun PostFoodScreen(navController: NavController, viewModel: FoodViewModel = view
     var quantity by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var pickupTime by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
+    var locationName by remember { mutableStateOf("") }
+    var latitude by remember { mutableStateOf(0.0) }
+    var longitude by remember { mutableStateOf(0.0) }
+    var isFetchingLocation by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
     val postState by viewModel.postState.collectAsState()
     var showImageOptions by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
     val calendar = remember { Calendar.getInstance() }
 
     val timePickerDialog = remember {
@@ -86,7 +92,7 @@ fun PostFoodScreen(navController: NavController, viewModel: FoodViewModel = view
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         selectedImageUri = uri
     }
-    
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -100,6 +106,26 @@ fun PostFoodScreen(navController: NavController, viewModel: FoodViewModel = view
         }
     }
 
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        ) {
+            fetchCurrentLocation(
+                fusedLocationClient, Geocoder(context, Locale.getDefault()),
+                onLoading = { isFetchingLocation = it },
+                onSuccess = { lat, lon, address ->
+                    latitude = lat
+                    longitude = lon
+                    locationName = address
+                },
+                onError = { errorMessage = it }
+            )
+        } else {
+            errorMessage = "Location permission is required to get current location."
+        }
+    }
 
     LaunchedEffect(postState) {
         if (postState is PostState.Success) {
@@ -166,35 +192,49 @@ fun PostFoodScreen(navController: NavController, viewModel: FoodViewModel = view
 
                 PostField(value = foodName, onValueChange = { foodName = it; errorMessage = "" },
                     label = "Food Name *", placeholder = "e.g., Biryani, Dal Rice, Pizza")
+
                 PostField(value = quantity, onValueChange = { quantity = it; errorMessage = "" },
                     label = "Quantity / Servings *", placeholder = "e.g., 10 servings, 5 kg")
+
                 PostField(value = description, onValueChange = { description = it },
                     label = "Description (Optional)", placeholder = "Special notes, ingredients...",
                     minLines = 3, maxLines = 4)
-                PostField(value = location, onValueChange = { location = it; errorMessage = "" },
-                    label = "Pickup Location *", placeholder = "e.g., Near City Hall, Sector 5")
+
+                // Location Field with "Get Current Location" button
+                Column {
+                    PostField(
+                        value = locationName, onValueChange = { locationName = it; errorMessage = "" },
+                        label = "Pickup Location *", placeholder = "e.g., Near City Hall, Sector 5",
+                        trailingIcon = {
+                            if (isFetchingLocation) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Saffron, strokeWidth = 2.dp)
+                            } else {
+                                IconButton(onClick = {
+                                    locationPermissionLauncher.launch(
+                                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                                    )
+                                }) {
+                                    Icon(Icons.Default.MyLocation, contentDescription = "Get current location", tint = Saffron)
+                                }
+                            }
+                        }
+                    )
+                    if (latitude != 0.0) {
+                        Text(
+                            text = "📍 Location coordinates saved",
+                            fontSize = 11.sp,
+                            color = Color(0xFF388E3C),
+                            modifier = Modifier.padding(start = 12.dp, top = 4.dp),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
                 PostField(
                     value = pickupTime, onValueChange = {},
                     label = "Pickup Time *", placeholder = "Tap to select time",
                     readOnly = true, onClick = { timePickerDialog.show() }
                 )
-
-                // Freshness reminder
-                Card(
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Saffron.copy(alpha = 0.08f)),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("⏰", fontSize = 24.sp)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text("Freshness Matters", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DarkBrown)
-                            Text("Specify accurate pickup times so food reaches people fresh.",
-                                fontSize = 12.sp, color = DarkBrown.copy(alpha = 0.55f), lineHeight = 17.sp)
-                        }
-                    }
-                }
 
                 if (errorMessage.isNotEmpty()) {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
@@ -204,20 +244,12 @@ fun PostFoodScreen(navController: NavController, viewModel: FoodViewModel = view
                     }
                 }
 
-                if (postState is PostState.Error) {
-                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
-                        shape = RoundedCornerShape(12.dp)) {
-                        Text((postState as PostState.Error).message, color = Color(0xFFD32F2F),
-                            fontSize = 13.sp, modifier = Modifier.padding(12.dp))
-                    }
-                }
-
                 Button(
                     onClick = {
                         when {
                             foodName.isEmpty() -> errorMessage = "Please enter food name"
                             quantity.isEmpty() -> errorMessage = "Please enter quantity"
-                            location.isEmpty() -> errorMessage = "Please enter pickup location"
+                            locationName.isEmpty() -> errorMessage = "Please enter pickup location"
                             pickupTime.isEmpty() -> errorMessage = "Please enter pickup time"
                             else -> viewModel.postFood(
                                 imageUri = selectedImageUri,
@@ -225,18 +257,16 @@ fun PostFoodScreen(navController: NavController, viewModel: FoodViewModel = view
                                 quantity = quantity.trim(),
                                 description = description.trim(),
                                 pickupTime = pickupTime.trim(),
-                                location = location.trim(),
-                                latitude = 0.0, longitude = 0.0
+                                location = locationName.trim(),
+                                latitude = latitude,
+                                longitude = longitude
                             )
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     enabled = postState !is PostState.Loading,
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Saffron,
-                        disabledContainerColor = Saffron.copy(alpha = 0.4f)
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = Saffron)
                 ) {
                     if (postState is PostState.Loading)
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.5.dp)
@@ -247,66 +277,70 @@ fun PostFoodScreen(navController: NavController, viewModel: FoodViewModel = view
             }
         }
 
-        // ✅ FIX: Use onClick on ListItem instead of .clickable modifier
         if (showImageOptions) {
             ModalBottomSheet(onDismissRequest = { showImageOptions = false }) {
-                ListItem(
-                    headlineContent = { Text("Take Photo", fontWeight = FontWeight.Medium) },
-                    leadingContent = { Icon(Icons.Default.CameraAlt, null, tint = Saffron) },
-                    modifier = Modifier,
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    supportingContent = { Text("Use camera to capture food", fontSize = 12.sp) },
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    trailingContent = null
-                )
-                // Use a Button-based row instead of clickable ListItem
-                TextButton(
-                    onClick = {
-                        showImageOptions = false
-                        when (PackageManager.PERMISSION_GRANTED) {
-                            ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.CAMERA
-                            ) -> {
-                                val imageFile = File.createTempFile("camera_image_", ".jpg", context.cacheDir)
-                                val newUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", imageFile)
-                                cameraImageUri = newUri
-                                cameraLauncher.launch(newUri)
-                            }
-                            else -> {
-                                permissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.textButtonColors(contentColor = DarkBrown)
-                ) {
-                    Icon(Icons.Default.CameraAlt, null, tint = Saffron)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("Take Photo", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+                Column(modifier = Modifier.padding(bottom = 32.dp)) {
+                    TextButton(
+                        onClick = {
+                            showImageOptions = false
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.CameraAlt, null, tint = Saffron)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Take Photo", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = DarkBrown)
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
 
-                TextButton(
-                    onClick = {
-                        showImageOptions = false
-                        galleryLauncher.launch("image/*")
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.textButtonColors(contentColor = DarkBrown)
-                ) {
-                    Icon(Icons.Default.Image, null, tint = Saffron)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("Choose from Gallery", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.weight(1f))
+                    TextButton(
+                        onClick = {
+                            showImageOptions = false
+                            galleryLauncher.launch("image/*")
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Image, null, tint = Saffron)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Choose from Gallery", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = DarkBrown)
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
+    }
+}
+
+@SuppressLint("MissingPermission")
+private fun fetchCurrentLocation(
+    fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient,
+    geocoder: Geocoder,
+    onLoading: (Boolean) -> Unit,
+    onSuccess: (Double, Double, String) -> Unit,
+    onError: (String) -> Unit
+) {
+    onLoading(true)
+    fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+        if (location != null) {
+            val lat = location.latitude
+            val lon = location.longitude
+
+            try {
+                val addresses = geocoder.getFromLocation(lat, lon, 1)
+                val address = addresses?.firstOrNull()?.getAddressLine(0) ?: "Lat: $lat, Lon: $lon"
+                onSuccess(lat, lon, address)
+            } catch (e: Exception) {
+                onSuccess(lat, lon, "Lat: $lat, Lon: $lon")
+            }
+        } else {
+            onError("Could not fetch current location. Please try manual entry.")
+        }
+        onLoading(false)
+    }.addOnFailureListener {
+        onError("Failed to fetch location: ${it.message}")
+        onLoading(false)
     }
 }
 
@@ -319,7 +353,8 @@ private fun PostField(
     minLines: Int = 1,
     maxLines: Int = 1,
     readOnly: Boolean = false,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -345,6 +380,7 @@ private fun PostField(
             cursorColor = Saffron, unfocusedBorderColor = Saffron.copy(alpha = 0.3f)
         ),
         readOnly = readOnly,
-        interactionSource = interactionSource
+        interactionSource = interactionSource,
+        trailingIcon = trailingIcon
     )
 }
